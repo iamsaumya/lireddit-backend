@@ -14,11 +14,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@mikro-orm/core");
 const mikro_orm_config_1 = __importDefault(require("./mikro-orm.config"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const express_1 = __importDefault(require("express"));
+const type_graphql_1 = require("type-graphql");
+const apollo_server_express_1 = require("apollo-server-express");
+const hello_1 = require("./resolvers/hello");
+dotenv_1.default.config();
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const orm = yield core_1.MikroORM.init(mikro_orm_config_1.default);
     yield orm.getMigrator().up();
-    const post = orm.em.create('Post', { title: 'my first post' });
-    yield orm.em.persistAndFlush(post);
+    const apolloserver = new apollo_server_express_1.ApolloServer({
+        schema: yield type_graphql_1.buildSchema({
+            resolvers: [hello_1.HelloResolver],
+            validate: false
+        })
+    });
+    const app = express_1.default();
+    apolloserver.applyMiddleware({ app });
+    app.listen(process.env.PORT, () => {
+        console.log("server is running on", process.env.PORT);
+    });
 });
 main().catch(err => {
     console.error(err);
