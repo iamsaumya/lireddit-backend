@@ -1,3 +1,4 @@
+import "reflect-metadata"
 import {MikroORM} from "@mikro-orm/core";
 import { __prod__ } from "./constants";
 import  microConfig from './mikro-orm.config'
@@ -6,21 +7,24 @@ import express from 'express'
 import {buildSchema} from 'type-graphql'
 import {ApolloServer} from 'apollo-server-express'
 import {HelloResolver} from './resolvers/hello'
+import { PostResolver } from "./resolvers/post";
 
 dotenv.config();
 
 const main = async () => {
     const orm =  await MikroORM.init(microConfig)
-    await orm.getMigrator().up();
+    await orm.getMigrator().up(); // to automatically make migrations
     const apolloserver = new ApolloServer({
-        schema: await buildSchema({
-            resolvers: [HelloResolver],
+        schema: await buildSchema({ // apollo and typeGraphQL are different things, essentialy typeGraphQL is helping us defining the schema, queires, mutations. 
+            // build schema is typegraphql function to create schema, it basically will create everyting for us.
+            resolvers: [HelloResolver, PostResolver],
             validate: false
-        })
+        }),
+        context: ()=> ({em: orm.em}) // context is an object available to all the resolvers.
     })
 
     const app = express();
-    apolloserver.applyMiddleware({app});
+    apolloserver.applyMiddleware({app}); // we have installed apollo-experss-server
 
     app.listen(process.env.PORT,()=>{
         console.log("server is running on", process.env.PORT);

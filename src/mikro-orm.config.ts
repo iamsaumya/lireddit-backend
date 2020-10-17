@@ -8,7 +8,7 @@ export default
 {   
     migrations:{
         path: path.join(__dirname,'./migrations'), // path to the folder with migrations
-        pattern: /^[\w-]+\d+\.[tj]s$/, // regex pattern for the migration files    
+        pattern: /^[\w-]+\d+\.[tj]s$/, // regex pattern for the migration files, it will match ts and js files
     },
     entities: [Post],
     dbName:"lireddit",

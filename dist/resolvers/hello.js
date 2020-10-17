@@ -17,7 +17,7 @@ let HelloResolver = class HelloResolver {
     }
 };
 __decorate([
-    type_graphql_1.Query(returns => String),
+    type_graphql_1.Query(() => String),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
