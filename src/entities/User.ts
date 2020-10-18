@@ -3,7 +3,7 @@ import { Field, ObjectType } from "type-graphql";
 
 @ObjectType() // add this line to convert schema to GraphQL schema
 @Entity()
-export class Post {
+export class User {
 
   @Field()
   @PrimaryKey()
@@ -18,6 +18,9 @@ export class Post {
   updatedAt = new Date();
 
   @Field() // for string type it automatically does for us
-  @Property({type: 'text'})
-  title!: string;
-}
+  @Property({type: 'text',unique:true})
+  username!: string;
+
+  @Property({type:'text'})
+  password!:string
+} 

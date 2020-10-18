@@ -19,7 +19,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const type_graphql_1 = require("type-graphql");
 const apollo_server_express_1 = require("apollo-server-express");
-const hello_1 = require("./resolvers/hello");
+const user_1 = require("./resolvers/user");
 const post_1 = require("./resolvers/post");
 dotenv_1.default.config();
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -27,7 +27,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     yield orm.getMigrator().up();
     const apolloserver = new apollo_server_express_1.ApolloServer({
         schema: yield type_graphql_1.buildSchema({
-            resolvers: [hello_1.HelloResolver, post_1.PostResolver],
+            resolvers: [post_1.PostResolver, user_1.UserResolver],
             validate: false
         }),
         context: () => ({ em: orm.em })

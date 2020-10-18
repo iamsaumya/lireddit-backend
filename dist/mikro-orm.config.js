@@ -7,13 +7,14 @@ const constants_1 = require("./constants");
 const Post_1 = require("./entities/Post");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
+const User_1 = require("./entities/User");
 dotenv_1.default.config();
 exports.default = {
     migrations: {
         path: path_1.default.join(__dirname, './migrations'),
         pattern: /^[\w-]+\d+\.[tj]s$/,
     },
-    entities: [Post_1.Post],
+    entities: [User_1.User, Post_1.Post],
     dbName: "lireddit",
     user: "postgres",
     password: "postgres",

@@ -6,7 +6,7 @@ import dotenv from 'dotenv'
 import express from 'express'
 import {buildSchema} from 'type-graphql'
 import {ApolloServer} from 'apollo-server-express'
-import {HelloResolver} from './resolvers/hello'
+import {UserResolver} from './resolvers/user'
 import { PostResolver } from "./resolvers/post";
 
 dotenv.config();
@@ -17,7 +17,7 @@ const main = async () => {
     const apolloserver = new ApolloServer({
         schema: await buildSchema({ // apollo and typeGraphQL are different things, essentialy typeGraphQL is helping us defining the schema, queires, mutations. 
             // build schema is typegraphql function to create schema, it basically will create everyting for us.
-            resolvers: [HelloResolver, PostResolver],
+            resolvers: [PostResolver,UserResolver],
             validate: false
         }),
         context: ()=> ({em: orm.em}) // context is an object available to all the resolvers.
