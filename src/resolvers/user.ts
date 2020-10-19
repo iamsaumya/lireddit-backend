@@ -1,5 +1,5 @@
-import { User } from "../entities/User";
-import { MyContext } from "../types";
+import { User } from '../entities/User';
+import { MyContext } from '../types';
 import {
   Arg,
   Ctx,
@@ -7,9 +7,9 @@ import {
   InputType,
   Mutation,
   ObjectType,
-  Resolver,
-} from "type-graphql";
-import argon2 from "argon2";
+  Resolver
+} from 'type-graphql';
+import argon2 from 'argon2';
 
 @InputType()
 class UsernamePasswordInput {
@@ -42,34 +42,34 @@ class userResponse {
 export class UserResolver {
   @Mutation(() => userResponse)
   async register(
-    @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Arg('options') options: UsernamePasswordInput,
+    @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
     if (options.username.length <= 2) {
       return {
         errors: [
           {
-            field: "username",
-            message: "username must be at least 3 char",
-          },
-        ],
+            field: 'username',
+            message: 'username must be at least 3 char'
+          }
+        ]
       };
     }
     if (options.password.length <= 3) {
       return {
         errors: [
           {
-            field: "password",
-            message: "password must be at least 4 char",
-          },
-        ],
+            field: 'password',
+            message: 'password must be at least 4 char'
+          }
+        ]
       };
     }
 
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username.toLowerCase(),
-      password: hashedPassword,
+      password: hashedPassword
     });
     try {
       await em.persistAndFlush(user);
@@ -78,31 +78,34 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: "username or password",
-            message: error.message,
-          },
-        ],
+            field: 'username or password',
+            message: error.message
+          }
+        ]
       };
     }
+    //store the cookie when someone registers
+    req.session!.userID = user.id;
+
     return { user };
   }
 
   @Mutation(() => userResponse)
   async login(
-    @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Arg('options') options: UsernamePasswordInput,
+    @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
     const user = await em.findOne(User, {
-      username: options.username.toLowerCase(),
+      username: options.username.toLowerCase()
     });
     if (!user) {
       return {
         errors: [
           {
-            field: "username",
-            message: "username does not exist",
-          },
-        ],
+            field: 'username',
+            message: 'username does not exist'
+          }
+        ]
       };
     }
 
@@ -112,15 +115,16 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: "password",
-            message: "incorrect password",
-          },
-        ],
+            field: 'password',
+            message: 'incorrect password'
+          }
+        ]
       };
     }
 
+    req.session!.userID = user.id;
     return {
-      user,
+      user
     };
   }
 }
