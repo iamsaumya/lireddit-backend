@@ -1,17 +1,18 @@
-import 'reflect-metadata';
-import { MikroORM } from '@mikro-orm/core';
-import { __prod__ } from './constants';
-import microConfig from './mikro-orm.config';
-import dotenv from 'dotenv';
-import express from 'express';
-import { buildSchema } from 'type-graphql';
-import { ApolloServer } from 'apollo-server-express';
-import { UserResolver } from './resolvers/user';
-import { PostResolver } from './resolvers/post';
-import redis from 'redis';
-import session from 'express-session';
-import connectRedis from 'connect-redis';
-import { MyContext } from './types';
+import "reflect-metadata";
+import { MikroORM } from "@mikro-orm/core";
+import { __prod__ } from "./constants";
+import microConfig from "./mikro-orm.config";
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
+import { buildSchema } from "type-graphql";
+import { ApolloServer } from "apollo-server-express";
+import { UserResolver } from "./resolvers/user";
+import { PostResolver } from "./resolvers/post";
+import redis from "redis";
+import session from "express-session";
+import connectRedis from "connect-redis";
+import { MyContext } from "./types";
 
 dotenv.config();
 
@@ -23,19 +24,24 @@ const main = async () => {
 
   let RedisStore = connectRedis(session);
   let redisClient = redis.createClient();
-
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true
+    })
+  );
   app.use(
     session({
-      name: 'pid',
+      name: "pid",
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: "lax",
         secure: __prod__ //cookie only works in http
       },
       saveUninitialized: false, //create session even if there is no data
-      secret: 'plwdmkcjnvrueutybzx',
+      secret: "plwdmkcjnvrueutybzx",
       resave: false
     })
   );
@@ -47,13 +53,13 @@ const main = async () => {
       resolvers: [PostResolver, UserResolver],
       validate: false
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }) // context is an object available to all the resolvers.
+    context: ({ req, res }): MyContext => ({ em: orm.em.fork(), req, res }) // context is an object available to all the resolvers.
   });
 
-  apolloserver.applyMiddleware({ app }); // we have installed apollo-experss-server
+  apolloserver.applyMiddleware({ app, cors: false }); // we have installed apollo-experss-server
 
   app.listen(process.env.PORT, () => {
-    console.log('server is running on', process.env.PORT);
+    console.log("server is running on", process.env.PORT);
   });
 };
 

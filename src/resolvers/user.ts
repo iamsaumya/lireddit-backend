@@ -1,5 +1,5 @@
-import { User } from '../entities/User';
-import { MyContext } from '../types';
+import { User } from "../entities/User";
+import { MyContext } from "../types";
 import {
   Arg,
   Ctx,
@@ -7,9 +7,10 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver
-} from 'type-graphql';
-import argon2 from 'argon2';
+} from "type-graphql";
+import argon2 from "argon2";
 
 @InputType()
 class UsernamePasswordInput {
@@ -40,17 +41,25 @@ class userResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async Me(@Ctx() { em, req }: MyContext): Promise<User | null> {
+    if (!req.session?.userID) return null;
+    else {
+      return await em.findOne(User, { id: req.session.userID });
+    }
+  }
+
   @Mutation(() => userResponse)
   async register(
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
     if (options.username.length <= 2) {
       return {
         errors: [
           {
-            field: 'username',
-            message: 'username must be at least 3 char'
+            field: "username",
+            message: "username must be at least 3 char"
           }
         ]
       };
@@ -59,8 +68,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'password',
-            message: 'password must be at least 4 char'
+            field: "password",
+            message: "password must be at least 4 char"
           }
         ]
       };
@@ -74,15 +83,16 @@ export class UserResolver {
     try {
       await em.persistAndFlush(user);
     } catch (error) {
-      console.log(error);
-      return {
-        errors: [
-          {
-            field: 'username or password',
-            message: error.message
-          }
-        ]
-      };
+      if (error.code === "23505") {
+        return {
+          errors: [
+            {
+              field: "username",
+              message: "username already taken"
+            }
+          ]
+        };
+      }
     }
     //store the cookie when someone registers
     req.session!.userID = user.id;
@@ -92,7 +102,7 @@ export class UserResolver {
 
   @Mutation(() => userResponse)
   async login(
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
     const user = await em.findOne(User, {
@@ -102,8 +112,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'username',
-            message: 'username does not exist'
+            field: "username",
+            message: "username does not exist"
           }
         ]
       };
@@ -115,8 +125,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'password',
-            message: 'incorrect password'
+            field: "password",
+            message: "incorrect password"
           }
         ]
       };
