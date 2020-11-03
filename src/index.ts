@@ -21,7 +21,6 @@ const main = async () => {
   await orm.getMigrator().up(); // to automatically make migrations
 
   const app = express();
-
   let RedisStore = connectRedis(session);
   let redisClient = redis.createClient();
   app.use(

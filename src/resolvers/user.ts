@@ -19,6 +19,9 @@ class UsernamePasswordInput {
   username!: string;
 
   @Field()
+  email!: string;
+
+  @Field()
   password!: string;
 }
 
@@ -65,6 +68,16 @@ export class UserResolver {
         ]
       };
     }
+    if (!options.email.includes("@")) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "invalid email"
+          }
+        ]
+      };
+    }
     if (options.password.length <= 3) {
       return {
         errors: [
@@ -78,6 +91,7 @@ export class UserResolver {
 
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
+      email: options.email.toLowerCase(),
       username: options.username.toLowerCase(),
       password: hashedPassword
     });
