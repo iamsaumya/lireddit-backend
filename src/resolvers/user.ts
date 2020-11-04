@@ -4,7 +4,6 @@ import {
   Arg,
   Ctx,
   Field,
-  InputType,
   Mutation,
   ObjectType,
   Query,
@@ -12,18 +11,8 @@ import {
 } from "type-graphql";
 import argon2 from "argon2";
 import { COOKIE_NAME } from "../constants";
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username!: string;
-
-  @Field()
-  email!: string;
-
-  @Field()
-  password!: string;
-}
+import { UsernamePasswordInput } from "../types";
+import { validateRegister } from "src/utils/validateRegister";
 
 @ObjectType()
 class fieldError {
@@ -58,37 +47,10 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
-    if (options.username.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "username must be at least 3 char"
-          }
-        ]
-      };
+    const errors = validateRegister(options);
+    if (errors !== null) {
+      return { errors };
     }
-    if (!options.email.includes("@")) {
-      return {
-        errors: [
-          {
-            field: "email",
-            message: "invalid email"
-          }
-        ]
-      };
-    }
-    if (options.password.length <= 3) {
-      return {
-        errors: [
-          {
-            field: "password",
-            message: "password must be at least 4 char"
-          }
-        ]
-      };
-    }
-
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       email: options.email.toLowerCase(),
@@ -117,12 +79,16 @@ export class UserResolver {
 
   @Mutation(() => userResponse)
   async login(
-    @Arg("options") options: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<userResponse> {
-    const user = await em.findOne(User, {
-      username: options.username.toLowerCase()
-    });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes("@")
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
     if (!user) {
       return {
         errors: [
@@ -134,7 +100,7 @@ export class UserResolver {
       };
     }
 
-    const valid = await argon2.verify(user.password, options.password);
+    const valid = await argon2.verify(user.password, password);
 
     if (!valid) {
       return {
