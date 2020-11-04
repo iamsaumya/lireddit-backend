@@ -51,6 +51,7 @@ export class UserResolver {
     if (errors !== null) {
       return { errors };
     }
+    console.log("here");
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       email: options.email.toLowerCase(),
@@ -60,7 +61,18 @@ export class UserResolver {
     try {
       await em.persistAndFlush(user);
     } catch (error) {
-      if (error.code === "23505") {
+      console.log(error);
+      if (error.constraint === "user_email_unique") {
+        return {
+          errors: [
+            {
+              field: "email",
+              message: "email already taken"
+            }
+          ]
+        };
+      }
+      if (error.constraint === "user_username_unique") {
         return {
           errors: [
             {
@@ -93,8 +105,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: "username",
-            message: "username does not exist"
+            field: "usernameOrEmail",
+            message: "usernameOrEmail does not exist"
           }
         ]
       };
