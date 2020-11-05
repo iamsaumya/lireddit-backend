@@ -9,7 +9,7 @@ import { buildSchema } from "type-graphql";
 import { ApolloServer } from "apollo-server-express";
 import { UserResolver } from "./resolvers/user";
 import { PostResolver } from "./resolvers/post";
-import redis from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { MyContext } from "./types";
@@ -22,7 +22,7 @@ const main = async () => {
 
   const app = express();
   let RedisStore = connectRedis(session);
-  let redisClient = redis.createClient();
+  let redis = new Redis();
   app.use(
     cors({
       origin: "http://localhost:3000",
@@ -32,7 +32,7 @@ const main = async () => {
   app.use(
     session({
       name: COOKIE_NAME,
-      store: new RedisStore({ client: redisClient, disableTouch: true }),
+      store: new RedisStore({ client: redis, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
@@ -52,7 +52,12 @@ const main = async () => {
       resolvers: [PostResolver, UserResolver],
       validate: false
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em.fork(), req, res }) // context is an object available to all the resolvers.
+    context: ({ req, res }): MyContext => ({
+      em: orm.em.fork(),
+      req,
+      res,
+      redis
+    }) // context is an object available to all the resolvers.
   });
 
   apolloserver.applyMiddleware({ app, cors: false }); // we have installed apollo-experss-server
