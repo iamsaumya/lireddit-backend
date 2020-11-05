@@ -15,6 +15,7 @@ import { UsernamePasswordInput } from "../types";
 import { validateRegister } from "../utils/validateRegister";
 import { v4 } from "uuid";
 import { sendEmail } from "../utils/sendEmails";
+import { getConnection } from "typeorm";
 
 @ObjectType()
 class fieldError {
@@ -37,10 +38,10 @@ class userResponse {
 @Resolver()
 export class UserResolver {
   @Query(() => User, { nullable: true })
-  async Me(@Ctx() { em, req }: MyContext): Promise<User | null> {
-    if (!req.session?.userID) return null;
+  async Me(@Ctx() { req }: MyContext): Promise<User | undefined> {
+    if (!req.session?.userID) return undefined;
     else {
-      return await em.findOne(User, { id: req.session.userID });
+      return await User.findOne(req.session.userID);
     }
   }
 
@@ -48,7 +49,7 @@ export class UserResolver {
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { redis, em, req }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<userResponse> {
     if (newPassword.length <= 2) {
       return {
@@ -73,7 +74,8 @@ export class UserResolver {
       };
     }
 
-    const user = await em.findOne(User, { id: parseInt(userId) });
+    const userIdNum = parseInt(userId);
+    const user = await User.findOne(userIdNum);
 
     if (!user) {
       return {
@@ -86,17 +88,18 @@ export class UserResolver {
       };
     }
 
-    user.password = await argon2.hash(newPassword);
-    await em.persistAndFlush(user);
+    await User.update(
+      { id: userIdNum },
+      { password: await argon2.hash(newPassword) }
+    );
     await redis.del(FORGET_PASSWORD_PREFIX + token);
     req.session!.userId = user.id;
-
     return { user };
   }
   @Mutation(() => userResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<userResponse> {
     const errors = validateRegister(options);
     if (errors !== null) {
@@ -104,16 +107,25 @@ export class UserResolver {
     }
     console.log("here");
     const hashedPassword = await argon2.hash(options.password);
-    const user = em.create(User, {
-      email: options.email.toLowerCase(),
-      username: options.username.toLowerCase(),
-      password: hashedPassword
-    });
+    let user;
     try {
-      await em.persistAndFlush(user);
+      const response = await getConnection()
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values([
+          {
+            username: options.username,
+            email: options.email,
+            password: hashedPassword
+          }
+        ])
+        .returning("*")
+        .execute();
+      user = response.raw[0];
     } catch (error) {
       console.log(error);
-      if (error.constraint === "user_email_unique") {
+      if (error.constraint === "UQ_e12875dfb3b1d92d7d7c5377e22") {
         return {
           errors: [
             {
@@ -123,7 +135,7 @@ export class UserResolver {
           ]
         };
       }
-      if (error.constraint === "user_username_unique") {
+      if (error.constraint === "UQ_78a916df40e02a9deb1c4b75edb") {
         return {
           errors: [
             {
@@ -144,14 +156,14 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<userResponse> {
-    const user = await em.findOne(
-      User,
+    const user = await User.findOne(
       usernameOrEmail.includes("@")
-        ? { email: usernameOrEmail }
-        : { username: usernameOrEmail }
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     );
+
     if (!user) {
       return {
         errors: [
@@ -185,9 +197,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { em, redis }: MyContext
+    @Ctx() { redis }: MyContext
   ): Promise<Boolean> {
-    const user = await em.findOne(User, { email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return true;
     }

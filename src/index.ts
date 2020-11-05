@@ -1,24 +1,33 @@
-import "reflect-metadata";
-import { MikroORM } from "@mikro-orm/core";
-import { COOKIE_NAME, __prod__ } from "./constants";
-import microConfig from "./mikro-orm.config";
+import { ApolloServer } from "apollo-server-express";
+import connectRedis from "connect-redis";
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import cors from "cors";
-import { buildSchema } from "type-graphql";
-import { ApolloServer } from "apollo-server-express";
-import { UserResolver } from "./resolvers/user";
-import { PostResolver } from "./resolvers/post";
-import Redis from "ioredis";
 import session from "express-session";
-import connectRedis from "connect-redis";
+import Redis from "ioredis";
+import "reflect-metadata";
+import { buildSchema } from "type-graphql";
+import { createConnection } from "typeorm";
+import { COOKIE_NAME, __prod__ } from "./constants";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
+import { PostResolver } from "./resolvers/post";
+import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 
 dotenv.config();
 
 const main = async () => {
-  const orm = await MikroORM.init(microConfig);
-  await orm.getMigrator().up(); // to automatically make migrations
+  createConnection({
+    username: "postgres",
+    password: "postgres",
+    type: "postgres",
+    database: "lireddit2",
+    logging: true,
+    synchronize: true, //sync entities with db
+    entities: [User, Post],
+    port: 5432
+  });
 
   const app = express();
   let RedisStore = connectRedis(session);
@@ -53,7 +62,6 @@ const main = async () => {
       validate: false
     }),
     context: ({ req, res }): MyContext => ({
-      em: orm.em.fork(),
       req,
       res,
       redis
