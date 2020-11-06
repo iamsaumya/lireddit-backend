@@ -18,3 +18,12 @@ export class UsernamePasswordInput {
   @Field()
   password!: string;
 }
+
+@InputType()
+export class PostInput {
+  @Field()
+  title!: string;
+
+  @Field()
+  text!: string;
+}

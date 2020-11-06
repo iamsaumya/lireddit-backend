@@ -5,8 +5,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  BaseEntity
+  BaseEntity,
+  OneToMany
 } from "typeorm";
+import { Post } from "./Post";
 
 @ObjectType() // add this line to convert schema to GraphQL schema
 @Entity()
@@ -14,14 +16,6 @@ export class User extends BaseEntity {
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Field(() => String)
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @Field(() => String) // adding type of the field for GraphQL
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @Field() // for string type it automatically does for us
   @Column({ unique: true })
@@ -33,4 +27,15 @@ export class User extends BaseEntity {
 
   @Column()
   password!: string;
+
+  @OneToMany(() => Post, (post) => post.creator)
+  posts: Post[];
+
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Field(() => String) // adding type of the field for GraphQL
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
