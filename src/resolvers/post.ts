@@ -10,12 +10,30 @@ import {
 import { MyContext, PostInput } from "../types";
 import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
+import { getConnection } from "typeorm";
 
 @Resolver()
 export class PostResolver {
   @Query(() => [Post]) // what will the query return
-  async posts(@Ctx() {}: MyContext /*Ts*/): Promise<Post[]> /*ts*/ {
-    return Post.find();
+  async posts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string,
+    @Ctx() {}: MyContext /*Ts*/
+  ): Promise<Post[]> /*ts*/ {
+    const realLimit = Math.min(20, limit);
+    const qb = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder("p")
+      .orderBy('"createdAt"', "DESC")
+      .take(realLimit);
+
+    if (cursor) {
+      qb.where('"createdAt" < :cursor', {
+        cursor: new Date(parseInt(cursor))
+      });
+    }
+
+    return qb.getMany();
   }
 
   @Query(() => Post, { nullable: true })
