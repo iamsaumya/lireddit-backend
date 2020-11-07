@@ -93,7 +93,7 @@ export class UserResolver {
       { password: await argon2.hash(newPassword) }
     );
     await redis.del(FORGET_PASSWORD_PREFIX + token);
-    req.session!.userId = user.id;
+    req.session!.userID = user.id;
     return { user };
   }
   @Mutation(() => userResponse)
@@ -201,6 +201,7 @@ export class UserResolver {
   ): Promise<Boolean> {
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      console.log("user not found for", email);
       return true;
     }
 

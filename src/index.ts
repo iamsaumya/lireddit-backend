@@ -18,7 +18,7 @@ import { MyContext } from "./types";
 dotenv.config();
 
 const main = async () => {
-  createConnection({
+  await createConnection({
     username: "postgres",
     password: "postgres",
     type: "postgres",
