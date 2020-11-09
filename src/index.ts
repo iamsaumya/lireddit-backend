@@ -14,7 +14,7 @@ import { User } from "./entities/User";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
-
+import path from "path";
 dotenv.config();
 
 const main = async () => {
@@ -25,6 +25,7 @@ const main = async () => {
     database: "lireddit2",
     logging: true,
     synchronize: true, //sync entities with db
+    migrations: [path.join(__dirname, "./migrations/*")],
     entities: [User, Post],
     port: 5432
   });
