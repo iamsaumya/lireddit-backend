@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { Field, InputType } from "type-graphql";
+import { Field, InputType, ObjectType } from "type-graphql";
 import { Redis } from "ioredis";
+import { Post } from "./entities/Post";
 export type MyContext = {
   req: Request;
   res: Response;
@@ -26,4 +27,13 @@ export class PostInput {
 
   @Field()
   text!: string;
+}
+
+@ObjectType()
+export class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+
+  @Field()
+  hasMore: boolean;
 }

@@ -18,7 +18,7 @@ import path from "path";
 dotenv.config();
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     username: "postgres",
     password: "postgres",
     type: "postgres",
@@ -29,7 +29,7 @@ const main = async () => {
     entities: [User, Post],
     port: 5432
   });
-
+  await conn.runMigrations();
   const app = express();
   let RedisStore = connectRedis(session);
   let redis = new Redis();
