@@ -14,6 +14,8 @@ import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
 
+type voteType = 1 | -1;
+
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
@@ -21,6 +23,25 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("value", () => Int) value: voteType,
+    @Arg("postId", () => Int) postId: number,
+    @Ctx() { req }: MyContext
+  ): Promise<Boolean> {
+    const userID = req.session?.userID;
+    const returnval = await getConnection().query(
+      `
+        START TRANSACTION;
+        insert into updoot ("userId","postId",value) values(${userID},${postId},${value});
+        update post set points = points + ${value} where id = ${postId};
+        COMMIT;
+      `
+    );
+    console.log("THIS IS RETURNED", returnval);
+    return true;
+  }
   @Query(() => PaginatedPosts) // what will the query return
   async posts(
     @Arg("limit", () => Int) limit: number,
@@ -65,7 +86,7 @@ export class PostResolver {
   }
 
   @Query(() => Post, { nullable: true })
-  post(
+  async post(
     @Arg("id", () => Int) id: number,
     @Ctx() {}: MyContext
   ): Promise<Post | undefined> {
