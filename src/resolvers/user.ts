@@ -18,7 +18,6 @@ import { validateRegister } from "../utils/validateRegister";
 import { v4 } from "uuid";
 import { sendEmail } from "../utils/sendEmails";
 import { getConnection } from "typeorm";
-import e from "express";
 
 @ObjectType()
 class fieldError {
@@ -45,7 +44,7 @@ export class UserResolver {
     if (user.id === req.session?.userID) {
       //this is current user/
       return user.email;
-    } else return "";
+    } else return ""; //this is
   }
 
   @Query(() => User, { nullable: true })
