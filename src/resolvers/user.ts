@@ -4,10 +4,12 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   Mutation,
   ObjectType,
   Query,
-  Resolver
+  Resolver,
+  Root
 } from "type-graphql";
 import argon2 from "argon2";
 import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
@@ -16,6 +18,7 @@ import { validateRegister } from "../utils/validateRegister";
 import { v4 } from "uuid";
 import { sendEmail } from "../utils/sendEmails";
 import { getConnection } from "typeorm";
+import e from "express";
 
 @ObjectType()
 class fieldError {
@@ -35,8 +38,16 @@ class userResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    if (user.id === req.session?.userID) {
+      //this is current user/
+      return user.email;
+    } else return "";
+  }
+
   @Query(() => User, { nullable: true })
   async Me(@Ctx() { req }: MyContext): Promise<User | undefined> {
     if (!req.session?.userID) return undefined;
