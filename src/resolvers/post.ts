@@ -13,6 +13,7 @@ import { MyContext, PaginatedPosts, PostInput } from "../types";
 import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
+import { Updoot } from "../entities/Updoot";
 
 type voteType = 1 | -1;
 
@@ -30,16 +31,42 @@ export class PostResolver {
     @Arg("postId", () => Int) postId: number,
     @Ctx() { req }: MyContext
   ): Promise<Boolean> {
-    const userID = req.session?.userID;
-    const returnval = await getConnection().query(
-      `
-        START TRANSACTION;
-        insert into updoot ("userId","postId",value) values(${userID},${postId},${value});
-        update post set points = points + ${value} where id = ${postId};
-        COMMIT;
-      `
-    );
-    console.log("THIS IS RETURNED", returnval);
+    const userId = req.session?.userID;
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
+
+    if (updoot && updoot.value !== value) {
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+            update updoot set value = $1 where "postId" = $2 and "userId" = $3
+          `,
+          [value, postId, userId]
+        );
+
+        await tm.query(
+          `
+          update post set points = points + $1 where id = $2 
+        `,
+          [2 * value, postId]
+        );
+      });
+    } else if (!updoot) {
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+            insert into updoot("userId","postId",value) values($1,$2,$3)
+          `,
+          [userId, postId, value]
+        );
+
+        await tm.query(
+          `
+          update post set points = posints + $1 where id = $2 
+        `,
+          [value, postId]
+        );
+      });
+    }
     return true;
   }
   @Query(() => PaginatedPosts) // what will the query return
