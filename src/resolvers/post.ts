@@ -61,7 +61,7 @@ export class PostResolver {
 
         await tm.query(
           `
-          update post set points = posints + $1 where id = $2 
+          update post set points = points + $1 where id = $2 
         `,
           [value, postId]
         );
