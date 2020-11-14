@@ -124,7 +124,7 @@ export class PostResolver {
     @Arg("id", () => Int) id: number,
     @Ctx() {}: MyContext
   ): Promise<Post | undefined> {
-    return Post.findOne(id);
+    return Post.findOne(id, { relations: ["creator"] });
   }
 
   @Mutation(() => Post)
