@@ -73,12 +73,13 @@ export class PostResolver {
   async posts(
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string,
-    @Ctx() {}: MyContext /*Ts*/
+    @Ctx() { req }: MyContext /*Ts*/
   ): Promise<PaginatedPosts> /*ts*/ {
     const realLimit = Math.min(20, limit);
     const realLimitPlusOne = realLimit + 1;
+    const replacements: any[] = [realLimitPlusOne, req.session?.userID];
 
-    const replacements: any[] = [realLimitPlusOne];
+    if (replacements[1] === undefined) replacements[1] = null; // to remove the extra parameter in requirements array when not needed in prepared statements
 
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
@@ -87,9 +88,15 @@ export class PostResolver {
     //there can be multple user table
     let posts = await getConnection().query(
       `
-      select p.*, json_build_object('id',u.id,'username',u.username,'email',u.email) creator from post p 
+      select p.*, json_build_object('id',u.id,'username',u.username,'email',u.email) creator,
+      ${
+        req.session?.userID
+          ? '(select value from Updoot where "postId"= p.id and "userId"=$2) "voteStatus"'
+          : '$2 as "voteStatus"'
+      }
+      from post p 
       inner join public.user u on u.id = p."creatorId"
-      ${cursor ? `where p."createdAt" < $2` : ""}
+      ${cursor ? `where p."createdAt" < $3` : ""}
       order by p."createdAt" DESC
       limit $1
     `,
